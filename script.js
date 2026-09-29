@@ -73,15 +73,114 @@ function lancerCoeurs() {
     }
 }
 
-yesBtn.addEventListener('click', function () {
-    lancerCoeurs();
-    noBtn.remove();
-    carte.classList.add('fin');
-    document.getElementById('titre').textContent = "J'ai hâte d'y être.";
-    carte.querySelectorAll('p, .btn-container').forEach(function (el) { el.remove(); });
+/* ---------- Choix de la date et de l'heure ---------- */
+// Attention : dans un objet Date, les mois commencent à 0 (0 = janvier, 9 = octobre)
+const DEBUT_FOIRE = new Date(2026, 9, 3);
+const FIN_FOIRE = new Date(2026, 10, 11);
+const HEURES = ['16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
+
+const formatCourt = new Intl.DateTimeFormat('fr-BE', { weekday: 'short', day: 'numeric', month: 'short' });
+const formatLong = new Intl.DateTimeFormat('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+// Parcourt la foire jour par jour et ne garde que les samedis et dimanches
+function joursDeWeekend() {
+    const jours = [];
+    const jour = new Date(DEBUT_FOIRE);
+    while (jour <= FIN_FOIRE) {
+        const numero = jour.getDay(); // 0 = dimanche, 6 = samedi
+        if (numero === 0 || numero === 6) {
+            jours.push(new Date(jour));
+        }
+        jour.setDate(jour.getDate() + 1);
+    }
+    return jours;
+}
+
+let dateChoisie = null;
+let heureChoisie = null;
+
+// Crée une rangée de boutons "pastilles" dont un seul peut être choisi
+function creerPastilles(conteneur, valeurs, libelle, quandChoisi) {
+    valeurs.forEach(function (valeur) {
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.className = 'pastille';
+        bouton.textContent = libelle(valeur);
+        bouton.addEventListener('click', function () {
+            conteneur.querySelectorAll('.pastille').forEach(function (p) { p.classList.remove('choisie'); });
+            bouton.classList.add('choisie');
+            quandChoisi(valeur);
+        });
+        conteneur.appendChild(bouton);
+    });
+}
+
+function afficherChoix() {
     carte.insertAdjacentHTML('beforeend',
         '<p>Ce soir-là, on laisse les soucis au pied de la roue.</p>' +
-        '<p class="signature">Je te propose une date très vite, en message privé.</p>');
+        '<p class="signature">Choisis notre soirée.</p>' +
+        '<div id="choix">' +
+            '<p class="etape">Un samedi ou un dimanche, pendant la foire :</p>' +
+            '<div class="grille" id="grille-jours"></div>' +
+            '<div id="bloc-heures" hidden>' +
+                '<p class="etape">À quelle heure ?</p>' +
+                '<div class="grille" id="grille-heures"></div>' +
+            '</div>' +
+            '<button id="confirmer" class="bouton-principal" type="button" disabled>Confirmer</button>' +
+        '</div>');
+
+    const blocHeures = document.getElementById('bloc-heures');
+    const confirmerBtn = document.getElementById('confirmer');
+
+    function verifier() {
+        confirmerBtn.disabled = !(dateChoisie && heureChoisie);
+    }
+
+    creerPastilles(document.getElementById('grille-jours'), joursDeWeekend(),
+        function (jour) { return formatCourt.format(jour); },
+        function (jour) { dateChoisie = jour; blocHeures.hidden = false; verifier(); });
+
+    creerPastilles(document.getElementById('grille-heures'), HEURES,
+        function (heure) { return heure.replace(':', 'h'); },
+        function (heure) { heureChoisie = heure; verifier(); });
+
+    confirmerBtn.addEventListener('click', confirmerChoix);
+}
+
+async function envoyerChoix(texte, bouton) {
+    // Sur mobile : ouvre le menu de partage (WhatsApp, SMS, Messenger...)
+    if (navigator.share) {
+        try {
+            await navigator.share({ text: texte });
+            return;
+        } catch (e) {
+            if (e.name === 'AbortError') return; // elle a fermé le menu, on ne fait rien
+        }
+    }
+    // Sinon : on copie le message pour qu'elle puisse le coller
+    try {
+        await navigator.clipboard.writeText(texte);
+        bouton.textContent = 'Copié ! Colle-le dans notre conversation';
+    } catch (e) {
+        window.prompt('Copie ce message :', texte);
+    }
+}
+
+function confirmerChoix() {
+    const jourTexte = formatLong.format(dateChoisie);
+    const heureTexte = heureChoisie.replace(':', 'h');
+    const message = 'Je choisis le ' + jourTexte + ' à ' + heureTexte + ' pour la Foire de Liège ! 🎡';
+
+    document.getElementById('titre').textContent = "C'est noté !";
+    carte.querySelectorAll('p, #choix').forEach(function (el) { el.remove(); });
+    carte.insertAdjacentHTML('beforeend',
+        '<p>Rendez-vous le <strong>' + jourTexte + '</strong> à <strong>' + heureTexte + '</strong>, à la Foire de Liège.</p>' +
+        '<p class="signature">Envoie-moi ton choix pour que je le note.</p>' +
+        '<button id="envoyer" class="bouton-principal" type="button">Envoyer mon choix</button>');
+    lancerCoeurs();
+
+    const envoyerBtn = document.getElementById('envoyer');
+    envoyerBtn.addEventListener('click', function () { envoyerChoix(message, envoyerBtn); });
 
     // Le petit message taquin arrive après un moment de suspense
     setTimeout(function () {
@@ -91,4 +190,13 @@ yesBtn.addEventListener('click', function () {
         carte.appendChild(taquin);
         lancerCoeurs();
     }, 3000);
+}
+
+yesBtn.addEventListener('click', function () {
+    lancerCoeurs();
+    noBtn.remove();
+    carte.classList.add('fin');
+    document.getElementById('titre').textContent = "J'ai hâte d'y être.";
+    carte.querySelectorAll('p, .btn-container').forEach(function (el) { el.remove(); });
+    afficherChoix();
 });

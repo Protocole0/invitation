@@ -199,3 +199,52 @@ h1 {
     .roue .tour, .roue .cabine, #sceau, .card { animation: none; }
     .rabat, .papier, #scene, #no-btn { transition: none; }
 }
+
+/* ---------- Choix de la date et de l'heure ---------- */
+.etape {
+    margin: 22px 0 10px;
+    font-size: .95rem;
+    color: var(--texte);
+}
+.grille {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+.pastille {
+    font-family: inherit;
+    font-size: .95rem;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(243, 199, 123, .4);
+    background: transparent;
+    color: var(--creme);
+    cursor: pointer;
+    transition: background-color .2s ease, color .2s ease, transform .2s ease;
+}
+.pastille:hover { background: rgba(243, 199, 123, .15); }
+.pastille.choisie {
+    background: var(--or);
+    color: var(--nuit);
+    border-color: var(--or);
+    transform: scale(1.05);
+}
+.bouton-principal {
+    margin-top: 26px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 13px 30px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg, var(--rose), #e0577a);
+    box-shadow: 0 6px 20px rgba(224, 87, 122, .45);
+}
+.bouton-principal:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+    box-shadow: none;
+}
